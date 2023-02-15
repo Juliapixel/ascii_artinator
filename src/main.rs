@@ -37,6 +37,9 @@ fn img_to_braille(img: DynamicImage) -> String {
         gray_img.put_pixel(x, y, image::Luma::<u8>([lightness]));
     }
 
+    #[cfg(debug_assertions)]
+    gray_img.save("gray.png");
+
     let add_error = |img: &mut image::GrayImage, x: Option<u32>, y: Option<u32>, err: &i32, importance: i32| {
         if let Some(xpos) = x {
             if let Some(ypos) = y {
@@ -77,7 +80,9 @@ fn img_to_braille(img: DynamicImage) -> String {
         }
     }
 
-    gray_img.save("gray.png");
+    #[cfg(debug_assertions)]
+    gray_img.save("dithered.png");
+
     let mut braille_img = BrailleImg::new(gray_img.width(), gray_img.height());
     for (x, y, pix) in gray_img.enumerate_pixels() {
         if pix.0[0] > 80{
@@ -187,10 +192,11 @@ struct Request {
 
 #[get("/braille")]
 async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
-    match reqwest::blocking::get(&req.img_url) {
+    println!("{}: {}", chrono::Utc::now(), req.img_url);
+    match reqwest::get(&req.img_url).await {
         Ok(resp) => {
             if let Some(img_format) = image::ImageFormat::from_mime_type(resp.headers().get("content-type").unwrap().to_str().unwrap()) {
-                match image::load_from_memory_with_format(&resp.bytes().unwrap(), img_format) {
+                match image::load_from_memory_with_format(&resp.bytes().await.unwrap(), img_format) {
                     Ok(img) => img_to_braille(resize_img(img)),
                     Err(_) => "failed to read image INSANECAT".to_owned(),
                 }
@@ -204,9 +210,16 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
 
 #[actix_web::main]
 async fn main() {
+    #[cfg(not(debug_assertions))]
     actix_web::HttpServer::new(||
         actix_web::App::new()
             .service(braille)
     ).bind(("0.0.0.0", 10034))
+    .unwrap().run().await.unwrap();
+    #[cfg(debug_assertions)]
+    actix_web::HttpServer::new(||
+        actix_web::App::new()
+            .service(braille)
+    ).bind(("127.0.0.1", 10035))
     .unwrap().run().await.unwrap();
 }
