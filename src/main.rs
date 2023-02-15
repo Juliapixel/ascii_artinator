@@ -16,7 +16,6 @@ fn resize_img(img: image::DynamicImage) -> image::DynamicImage {
 }
 
 fn img_to_braille(img: DynamicImage) -> String {
-    let braille_img = String::new();
     let mut gray_img = image::GrayImage::new(img.width(), img.height());
 
     let compute_lightness = |rgba: &[f32; 4]| -> u8 {
@@ -63,9 +62,6 @@ fn img_to_braille(img: DynamicImage) -> String {
             } else {
                 cur_pix.0[0] = 0;
             }
-
-            let xpos = x as i64;
-            let ypos = y as i64;
 
             add_error(&mut gray_img, x.checked_add(1), Some(y)    , &error, 5);
             add_error(&mut gray_img, x.checked_add(2), Some(y)    , &error, 3);
