@@ -2,13 +2,6 @@ use actix_web::{Responder, get};
 use image::{DynamicImage, GenericImageView};
 use serde::Deserialize;
 
-fn resize_from_path(path: &str) -> image::DynamicImage {
-    let img = image::open(path).unwrap();
-    let aspect_ratio = img.width() as f32 / img.height() as f32;
-    let target_height = (58.0 / aspect_ratio) as u32;
-    return img.resize(58, target_height, image::imageops::Triangle);
-}
-
 fn resize_img(img: image::DynamicImage) -> image::DynamicImage {
     let aspect_ratio = img.width() as f32 / img.height() as f32;
     let target_height = (58.0 / aspect_ratio) as u32;
@@ -37,7 +30,7 @@ fn img_to_braille(img: DynamicImage) -> String {
     }
 
     #[cfg(debug_assertions)]
-    gray_img.save("gray.png");
+    gray_img.save("gray.png").unwrap();
 
     let add_error = |img: &mut image::GrayImage, x: Option<u32>, y: Option<u32>, err: &i32, importance: i32| {
         if let Some(xpos) = x {
@@ -77,7 +70,7 @@ fn img_to_braille(img: DynamicImage) -> String {
     }
 
     #[cfg(debug_assertions)]
-    gray_img.save("dithered.png");
+    gray_img.save("dithered.png").unwrap();
 
     let mut braille_img = BrailleImg::new(gray_img.width(), gray_img.height());
     for (x, y, pix) in gray_img.enumerate_pixels() {
@@ -104,6 +97,7 @@ const BRAILLE_CHARS: [char; 256] = [
 '⣻', '⣼', '⣽', '⣾', '⣿'
 ];
 
+#[allow(dead_code)]
 struct BrailleImg {
     braille_vals: Vec<u8>,
     dot_width: u32,
