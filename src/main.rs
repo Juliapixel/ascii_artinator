@@ -1,5 +1,6 @@
 use actix_web::{Responder, get};
 use image::{DynamicImage, GenericImageView};
+use rand::Rng;
 use serde::Deserialize;
 
 fn resize_img(img: image::DynamicImage) -> image::DynamicImage {
@@ -163,7 +164,7 @@ impl BrailleImg {
         let mut braille_string = String::new();
         for (i, val) in self.braille_vals.into_iter().enumerate() {
             if i % self.char_width as usize == 0 {
-                braille_string.push('\n');
+                braille_string.push(' ');
             }
             if val == 0 && no_empty_chars {
                 braille_string.push(BRAILLE_CHARS[1])
@@ -198,18 +199,54 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
     }
 }
 
+fn load_words() -> Vec<String> {
+    std::fs::read_to_string("10000-english-no-swears.txt")
+        .unwrap()
+        .lines()
+        .map(|c| c.to_owned())
+        .collect()
+}
+
+lazy_static::lazy_static! {
+    static ref WORD_LIST: Vec<String> = load_words();
+}
+
+fn generate_zoazo() -> String{
+    let mut rng = rand::thread_rng();
+    let zoazo_len = rng.gen_range(0..=5);
+    let mut zoazo_emote = String::from("zoazo");
+    for _ in 0..=zoazo_len {
+        let mut rand_word = WORD_LIST[rng.gen_range(0..WORD_LIST.len())].clone();
+        rand_word = rand_word
+            .chars()
+            .enumerate()
+            .map(|(i, c)| if i == 0 { return c.to_ascii_uppercase() } else { return c })
+            .collect::<String>();
+        zoazo_emote.push_str(&rand_word);
+    }
+    return zoazo_emote;
+}
+
+#[get("/zoazo")]
+async fn zoazo() -> impl Responder {
+    println!("{}: {}", chrono::Utc::now(), "zoazo requested");
+    return generate_zoazo();
+}
+
 #[actix_web::main]
 async fn main() {
     #[cfg(not(debug_assertions))]
     actix_web::HttpServer::new(||
         actix_web::App::new()
             .service(braille)
+            .service(zoazo)
     ).bind(("0.0.0.0", 10034))
     .unwrap().run().await.unwrap();
     #[cfg(debug_assertions)]
     actix_web::HttpServer::new(||
         actix_web::App::new()
             .service(braille)
+            .service(zoazo)
     ).bind(("127.0.0.1", 10035))
     .unwrap().run().await.unwrap();
 }
