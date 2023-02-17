@@ -213,9 +213,9 @@ lazy_static::lazy_static! {
 
 fn generate_zoazo() -> String{
     let mut rng = rand::thread_rng();
-    let zoazo_len = rng.gen_range(0..=5);
+    let zoazo_len = rng.gen_range(1..=5);
     let mut zoazo_emote = String::from("zoazo");
-    for _ in 0..=zoazo_len {
+    for _ in 0..zoazo_len {
         let mut rand_word = WORD_LIST[rng.gen_range(0..WORD_LIST.len())].clone();
         rand_word = rand_word
             .chars()
