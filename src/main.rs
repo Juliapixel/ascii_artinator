@@ -188,7 +188,14 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
         Ok(resp) => {
             if let Some(img_format) = image::ImageFormat::from_mime_type(resp.headers().get("content-type").unwrap().to_str().unwrap()) {
                 match image::load_from_memory_with_format(&resp.bytes().await.unwrap(), img_format) {
-                    Ok(img) => img_to_braille(resize_img(img)),
+                    Ok(img) => {
+                        let ascii = img_to_braille(resize_img(img));
+                        if ascii.len() > 500 {
+                            return "image too tall smh".to_owned()
+                        } else {
+                            return ascii
+                        }
+                    },
                     Err(_) => "failed to read image INSANECAT".to_owned(),
                 }
             } else {
@@ -213,7 +220,8 @@ lazy_static::lazy_static! {
 
 fn generate_zoazo() -> String{
     let mut rng = rand::thread_rng();
-    let zoazo_len = rng.gen_range(1..=5);
+    let zoazo_short = rng.gen_bool(0.5);
+    let zoazo_len = if zoazo_short { 1 } else { rng.gen_range(2..=5) };
     let mut zoazo_emote = String::from("zoazo");
     for _ in 0..zoazo_len {
         let mut rand_word = WORD_LIST[rng.gen_range(0..WORD_LIST.len())].clone();
@@ -229,8 +237,9 @@ fn generate_zoazo() -> String{
 
 #[get("/zoazo")]
 async fn zoazo() -> impl Responder {
-    println!("{}: {}", chrono::Utc::now(), "zoazo requested");
-    return generate_zoazo();
+    let zoazo_emote = generate_zoazo();
+    println!("{}: zoazoEmote: {}", chrono::Utc::now(), zoazo_emote);
+    return zoazo_emote;
 }
 
 #[actix_web::main]
