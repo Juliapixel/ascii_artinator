@@ -190,7 +190,7 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
                 match image::load_from_memory_with_format(&resp.bytes().await.unwrap(), img_format) {
                     Ok(img) => {
                         let ascii = img_to_braille(resize_img(img));
-                        if ascii.len() > 500 {
+                        if ascii.chars().count() > 500 {
                             return "image too tall smh".to_owned()
                         } else {
                             return ascii
@@ -222,7 +222,13 @@ fn generate_zoazo() -> String{
     let mut rng = rand::thread_rng();
     let zoazo_short = rng.gen_bool(0.5);
     let zoazo_len = if zoazo_short { 1 } else { rng.gen_range(2..=5) };
-    let mut zoazo_emote = String::from("zoazo");
+    let mut zoazo_emote;
+    // one in 1000 chance of it being TTS TROLLED
+    if rng.gen_bool(0.001) {
+        zoazo_emote = String::from("hili zoazo");
+    } else {
+        zoazo_emote = String::from("zoazo");
+    }
     for _ in 0..zoazo_len {
         let mut rand_word = WORD_LIST[rng.gen_range(0..WORD_LIST.len())].clone();
         rand_word = rand_word
