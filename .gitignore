@@ -4,3 +4,4 @@
 *.webp
 *.jpg
 *.jpeg
+/deploy.sh
