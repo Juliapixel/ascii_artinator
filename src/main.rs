@@ -1,6 +1,6 @@
 use actix_web::{Responder, get};
-use flexi_logger::{LogSpecification, FileSpec, LoggerHandle};
-use log::{info, error};
+use flexi_logger::{LogSpecification, FileSpec, LoggerHandle, DeferredNow, style};
+use log::{info, error, Record};
 use ascii_artinator::commons::braille_img::BrailleImg;
 use rand::Rng;
 use serde::Deserialize;
@@ -112,6 +112,21 @@ async fn zoazo() -> impl Responder {
     return zoazo_emote;
 }
 
+fn colored_format(
+    w: &mut dyn std::io::Write,
+    now: &mut DeferredNow,
+    record: &Record,
+) -> Result<(), std::io::Error> {
+    let level = record.level();
+    write!(
+        w,
+        "[{}] {} {}",
+        now.format(flexi_logger::TS_DASHES_BLANK_COLONS_DOT_BLANK).to_string(),
+        style(level).paint(level.to_string()),
+        &record.args().to_string()
+    )
+}
+
 fn init_log() -> LoggerHandle {
     let log_spec;
     #[cfg(debug_assertions)]
@@ -131,7 +146,7 @@ fn init_log() -> LoggerHandle {
     log_dir.pop();
     log_dir.push("ascii_artinator_log");
     return flexi_logger::Logger::with(log_spec)
-        .format(flexi_logger::colored_opt_format)
+        .format(colored_format)
         .log_to_file(FileSpec::default().directory(log_dir))
         .rotate(
             flexi_logger::Criterion::Age(flexi_logger::Age::Day),
