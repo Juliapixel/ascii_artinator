@@ -26,7 +26,8 @@ struct Request {
     line_break: Option<bool>,
     width: Option<u32>,
     height: Option<u32>,
-    limit: Option<bool>
+    limit: Option<bool>,
+    allow_empty: Option<bool>,
 }
 
 #[get("/braille")]
@@ -40,7 +41,7 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
                     match image::load_from_memory_with_format(&resp.bytes().await.unwrap(), img_format) {
                         Ok(img) => {
                             let ascii = BrailleImg::from_image(resize_img(img, req.width, req.height).to_rgba8())
-                                .to_str(true, req.line_break.unwrap_or(true));
+                                .to_str(!req.allow_empty.unwrap_or(false), req.line_break.unwrap_or(true));
                             if ascii.chars().count() > 500 && req.limit.unwrap_or(false) {
                                 error!("image requested too tall.");
                                 return "image too tall".to_owned()
