@@ -172,7 +172,7 @@ async fn main() {
             actix_web::App::new()
                 .service(braille)
                 .service(zoazo)
-        ).bind(("127.0.0.1", 10034))
+        ).bind(("0.0.0.0", 10034))
         .unwrap().run().await.unwrap();
     }
 
