@@ -6,17 +6,13 @@ use rand::Rng;
 use serde::Deserialize;
 
 fn resize_img(img: image::DynamicImage, width: Option<u32>, height: Option<u32>) -> image::DynamicImage {
-    let mut target_width = 58;
-    if let Some(w) = width {
-        target_width = w;
-    }
-    let target_height;
-    if let Some(h) = height {
-        target_height = h;
+    let target_width = width.unwrap_or(58);
+    let target_height = if let Some(h) = height {
+        h
     } else {
         let aspect_ratio = img.width() as f32 / img.height() as f32;
-        target_height = (target_width as f32 / aspect_ratio) as u32;
-    }
+        (target_width as f32 / aspect_ratio) as u32
+    };
     return img.resize(target_width, target_height, image::imageops::Triangle);
 }
 
