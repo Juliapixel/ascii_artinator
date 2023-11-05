@@ -4,4 +4,5 @@
 *.webp
 *.jpg
 *.jpeg
+*.tar.*
 /deploy.sh
