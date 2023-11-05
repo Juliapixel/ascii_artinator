@@ -1,4 +1,4 @@
-use actix_web::{Responder, get};
+use actix_web::{Responder, get, middleware::Logger};
 use flexi_logger::{LogSpecification, FileSpec, LoggerHandle, DeferredNow, style};
 use log::{info, error, Record};
 use ascii_artinator::commons::braille_img::BrailleImg;
@@ -158,27 +158,26 @@ fn init_log() -> LoggerHandle {
         .unwrap();
 }
 
+const BIND_ADDRESS: (&str, u16) = {
+    #[cfg(not(debug_assertions))]
+    {
+        ("0.0.0.0", 10034)
+    }
+    #[cfg(debug_assertions)]
+    {
+        ("127.0.0.1", 10035)
+    }
+};
+
 #[actix_web::main]
 async fn main() {
     let _logger = init_log();
 
-    #[cfg(not(debug_assertions))]
-    {
-        actix_web::HttpServer::new(||
-            actix_web::App::new()
-                .service(braille)
-                .service(zoazo)
-        ).bind(("0.0.0.0", 10034))
-        .unwrap().run().await.unwrap();
-    }
-
-    #[cfg(debug_assertions)]
-    {
-        actix_web::HttpServer::new(||
-            actix_web::App::new()
-                .service(braille)
-                .service(zoazo)
-        ).bind(("127.0.0.1", 10035))
-        .unwrap().run().await.unwrap();
-    }
+    actix_web::HttpServer::new(||
+        actix_web::App::new()
+            .wrap(Logger::default())
+            .service(braille)
+            .service(zoazo)
+    ).bind(BIND_ADDRESS)
+    .unwrap().run().await.unwrap();
 }
