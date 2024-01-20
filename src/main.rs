@@ -1,8 +1,9 @@
-use actix_web::{Responder, get, middleware::Logger};
+use actix_web::{Responder, get, middleware::{Logger, DefaultHeaders}};
 use flexi_logger::{LogSpecification, FileSpec, LoggerHandle, DeferredNow, style};
 use log::{info, error, Record};
 use ascii_artinator::commons::braille_img::BrailleImg;
 use rand::Rng;
+use reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN;
 use serde::Deserialize;
 
 fn resize_img(img: image::DynamicImage, width: Option<u32>, height: Option<u32>) -> image::DynamicImage {
@@ -176,6 +177,7 @@ async fn main() {
     actix_web::HttpServer::new(||
         actix_web::App::new()
             .wrap(Logger::default())
+            .wrap(DefaultHeaders::new().add((ACCESS_CONTROL_ALLOW_ORIGIN, "*")))
             .service(braille)
             .service(zoazo)
     ).bind(BIND_ADDRESS)
