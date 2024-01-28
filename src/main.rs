@@ -1,4 +1,4 @@
-use std::net::{Ipv4Addr, Ipv6Addr};
+use std::net::Ipv4Addr;
 
 use actix_web::{Responder, get, middleware::{Logger, DefaultHeaders}};
 use flexi_logger::{LogSpecification, FileSpec, LoggerHandle, DeferredNow, style};
