@@ -1,7 +1,9 @@
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use actix_web::{Responder, get, middleware::{Logger, DefaultHeaders}};
 use flexi_logger::{LogSpecification, FileSpec, LoggerHandle, DeferredNow, style};
 use log::{info, error, Record};
-use ascii_artinator::commons::braille_img::BrailleImg;
+use make_it_braille::{braille::BrailleImg, dithering::{Bayer4x4, Ditherer, None, Sierra2Row}};
 use rand::Rng;
 use reqwest::header::ACCESS_CONTROL_ALLOW_ORIGIN;
 use serde::Deserialize;
@@ -17,6 +19,25 @@ fn resize_img(img: image::DynamicImage, width: Option<u32>, height: Option<u32>)
     return img.resize(target_width, target_height, image::imageops::Triangle);
 }
 
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(rename_all = "snake_case")]
+enum Dithering {
+    #[default]
+    Sierra2,
+    Bayer,
+    None
+}
+
+impl Dithering {
+    pub fn to_ditherer(&self) -> &dyn Ditherer {
+        match self {
+            Dithering::Sierra2 => &Sierra2Row,
+            Dithering::Bayer => &Bayer4x4,
+            Dithering::None => &None,
+        }
+    }
+}
+
 #[derive(Deserialize)]
 struct Request {
     img_url: String,
@@ -25,6 +46,8 @@ struct Request {
     height: Option<u32>,
     limit: Option<bool>,
     allow_empty: Option<bool>,
+    #[serde(default)]
+    dithering: Dithering
 }
 
 #[get("/braille")]
@@ -37,7 +60,7 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
                 if let Some(img_format) = image::ImageFormat::from_mime_type(mime_type.to_str().unwrap()) {
                     match image::load_from_memory_with_format(&resp.bytes().await.unwrap(), img_format) {
                         Ok(img) => {
-                            let ascii = BrailleImg::from_image(resize_img(img, req.width, req.height).to_rgba8())
+                            let ascii = BrailleImg::from_image(resize_img(img, req.width, req.height), req.dithering.to_ditherer(), true)
                                 .to_str(!req.allow_empty.unwrap_or(false), req.line_break.unwrap_or(true));
                             if ascii.chars().count() > 500 && req.limit.unwrap_or(false) {
                                 error!("image requested too tall.");
@@ -70,15 +93,14 @@ async fn braille(req: actix_web::web::Query<Request>) -> impl Responder {
 
 const WORDS: &'static str = include_str!("../10000-english-no-swears.txt");
 
-fn load_words() -> Vec<String> {
+fn load_words() -> Vec<&'static str> {
     WORDS
         .lines()
-        .map(|c| c.to_owned())
         .collect()
 }
 
 lazy_static::lazy_static! {
-    static ref WORD_LIST: Vec<String> = load_words();
+    static ref WORD_LIST: Vec<&'static str> = load_words();
 }
 
 fn generate_zoazo() -> String{
@@ -159,14 +181,14 @@ fn init_log() -> LoggerHandle {
         .unwrap();
 }
 
-const BIND_ADDRESS: (&str, u16) = {
+const BIND_ADDRESS: (Ipv4Addr, u16) = {
     #[cfg(not(debug_assertions))]
     {
-        ("0.0.0.0", 10034)
+        (Ipv4Addr::UNSPECIFIED, 10034)
     }
     #[cfg(debug_assertions)]
     {
-        ("127.0.0.1", 10035)
+        (Ipv4Addr::LOCALHOST, 10035)
     }
 };
 
